@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"pbtool/common"
 	"pbtool/conf"
 	"regexp"
 	"strconv"
@@ -40,27 +41,28 @@ func init() {
 
 }
 
-func Parse(cfg *conf.OutCfg) {
+func Parse(cfg *conf.OutCfg) bool {
 	tsCfg := &conf.TsCfg{}
 	err := json.Unmarshal([]byte(cfg.Context), tsCfg)
 	if err != nil {
 		vcl.ShowMessage("tsParse 解析Json报错")
-		return
+		return false
 	}
 	out := make([]string, 0)
-	FilePathContent(cfg.InPath, &out)
+	common.FilePathContent(cfg.InPath, &out)
 	for _, v := range out {
 		b := parseMessage(v)
 		if !b {
-			return
+			return false
 		}
 		parseEnum(v)
 		parseRPC(v)
 	}
 	write(cfg.OutPath, tsCfg.Ns, tsCfg.UseModule, tsCfg.CreateJson, tsCfg.FileName)
 	if tsCfg.CreateJson {
-		writeJSON(tsCfg.OutJsonPath + tsCfg.JsonName)
+		writeJSON(tsCfg.OutJsonPath + "/" + tsCfg.JsonName)
 	}
+	return true
 }
 
 func parseRPC(str string) {
@@ -204,9 +206,9 @@ func write(OutPath string, NameSpace string, UseModule bool, CreateJson bool, Fi
 
 	str := "namespace " + NameSpace + "{\n"
 	if UseModule {
-		str = Title + "export " + str
+		str = common.Title + "export " + str
 	} else {
-		str = Title + str
+		str = common.Title + str
 	}
 	str += writeCmd() + "\n"
 	if !CreateJson {
@@ -240,7 +242,7 @@ func write(OutPath string, NameSpace string, UseModule bool, CreateJson bool, Fi
 	str += "}"
 
 	var d = []byte(str)
-	err = ioutil.WriteFile(OutPath+FileName, d, 0666)
+	err = ioutil.WriteFile(OutPath+"/"+FileName, d, 0666)
 	if err != nil {
 		fmt.Println("write ts fail")
 	} else {

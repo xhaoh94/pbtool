@@ -14,49 +14,72 @@ import (
 
 type TCfgForm struct {
 	*vcl.TForm
+	pTop     *vcl.TFrame
 	pContext *vcl.TPanel
 	cfg      *conf.OutCfg
 
-	ts *conf.TsCfg
+	tag2pnl map[string]*PnlCfg
+}
+type PnlCfg struct {
+	Pnl *vcl.TFrame
+	Cfg interface{}
 }
 
 var (
 	CfgForm *TCfgForm
 )
 
-func (f *TCfgForm) OnFormCreate(sender vcl.IObject) {
+func (f *TCfgForm) Init() {
 	f.cfg = new(conf.OutCfg)
 	f.cfg.ID = StringToHash(uuid.New().String())
+	f.tag2pnl = make(map[string]*PnlCfg)
+	f.create()
+}
+
+func (f *TCfgForm) OnFormCreate(sender vcl.IObject) {
 	f.SetCaption("添加配置")
-	f.SetBorderStyle(types.BsToolWindow)
-	f.SetPosition(types.PoScreenCenter)
+	f.SetBorderStyle(types.BsSingle)
+	f.SetBorderIcons(1)
 	f.SetWidth(600)
 	f.SetHeight(300)
-	f.create()
-	f.tsPanel()
+	f.SetPosition(types.PoScreenCenter)
 }
 func (f *TCfgForm) create() {
+	if f.pContext != nil {
+		f.pContext.Free()
+		f.pContext = nil
+	}
+	if f.pTop != nil {
+		f.pTop.Free()
+		f.pTop = nil
+	}
 
-	pTop := vcl.NewFrame(f)
-	pTop.SetParent(f)
-	// pTop.SetParentBackground(false)
-	// pTop.SetColor(colors.ClWhite)
-	pTop.SetHeight(120)
-	pTop.SetAlign(types.AlTop)
+	f.pContext = vcl.NewPanel(f)
+	f.pContext.SetParent(f)
+	f.pContext.SetParentBackground(false)
+	f.pContext.SetColor(colors.ClWhite)
+	f.pContext.SetAlign(types.AlClient)
 
-	lb := vcl.NewLabel(pTop)
-	lb.SetParent(pTop)
+	f.pTop = vcl.NewFrame(f)
+	f.pTop.SetParent(f)
+	// f.pTop.SetParentBackground(false)
+	// f.pTop.SetColor(colors.ClWhite)
+	f.pTop.SetHeight(120)
+	f.pTop.SetAlign(types.AlTop)
+
+	lb := vcl.NewLabel(f.pTop)
+	lb.SetParent(f.pTop)
 	lb.SetCaption("proto文件目录：")
 	lb.SetTop(15)
 	lb.SetLeft(10)
 
-	dirEdit := vcl.NewEdit(pTop)
+	dirEdit := vcl.NewEdit(f.pTop)
 	dirEdit.SetEnabled(false)
-	dirEdit.SetParent(pTop)
+	dirEdit.SetParent(f.pTop)
 	dirEdit.SetBounds(100, 10, 400, 50)
 
-	btnDir := vcl.NewButton(pTop)
-	btnDir.SetParent(pTop)
+	btnDir := vcl.NewButton(f.pTop)
+	btnDir.SetParent(f.pTop)
 	btnDir.SetCaption("···")
 	btnDir.SetBounds(510, 10, 80, 25)
 	btnDir.SetOnClick(func(sender vcl.IObject) {
@@ -68,19 +91,19 @@ func (f *TCfgForm) create() {
 		}
 	})
 
-	lb = vcl.NewLabel(pTop)
-	lb.SetParent(pTop)
+	lb = vcl.NewLabel(f.pTop)
+	lb.SetParent(f.pTop)
 	lb.SetCaption("导出文件目录：")
 	lb.SetTop(50)
 	lb.SetLeft(10)
 
-	outEdit := vcl.NewEdit(pTop)
+	outEdit := vcl.NewEdit(f.pTop)
 	outEdit.SetEnabled(false)
-	outEdit.SetParent(pTop)
+	outEdit.SetParent(f.pTop)
 	outEdit.SetBounds(100, 50, 400, 50)
 
-	btnOut := vcl.NewButton(pTop)
-	btnOut.SetParent(pTop)
+	btnOut := vcl.NewButton(f.pTop)
+	btnOut.SetParent(f.pTop)
 	btnOut.SetCaption("···")
 	btnOut.SetBounds(510, 50, 80, 25)
 	btnOut.SetOnClick(func(sender vcl.IObject) {
@@ -92,42 +115,54 @@ func (f *TCfgForm) create() {
 		}
 	})
 
-	lb = vcl.NewLabel(pTop)
-	lb.SetParent(pTop)
+	lb = vcl.NewLabel(f.pTop)
+	lb.SetParent(f.pTop)
 	lb.SetCaption("配置名称:")
 	lb.SetTop(95)
 	lb.SetLeft(10)
 
-	nameEdit := vcl.NewEdit(pTop)
-	nameEdit.SetParent(pTop)
+	nameEdit := vcl.NewEdit(f.pTop)
+	nameEdit.SetParent(f.pTop)
 	nameEdit.SetTextHint("请输入名字")
 	nameEdit.SetBounds(100, 90, 200, 50)
 	nameEdit.SetOnChange(func(sender vcl.IObject) {
 		f.cfg.Name = nameEdit.Text()
 	})
 
-	lb = vcl.NewLabel(pTop)
-	lb.SetParent(pTop)
+	lb = vcl.NewLabel(f.pTop)
+	lb.SetParent(f.pTop)
 	lb.SetCaption("类型:")
 	lb.SetTop(95)
 	lb.SetLeft(310)
 
-	typeCombox := vcl.NewComboBox(pTop)
-	typeCombox.SetParent(pTop)
+	typeCombox := vcl.NewComboBox(f.pTop)
+	typeCombox.SetParent(f.pTop)
 	typeCombox.SetTop(90)
 	typeCombox.SetLeft(350)
 	typeCombox.SetStyle(types.CsDropDownList)
 	typeCombox.SetOnChange(func(sender vcl.IObject) {
-		f.cfg.TagType = typeCombox.Items().Strings(typeCombox.ItemIndex())
+		TagType := typeCombox.Items().Strings(typeCombox.ItemIndex())
+		f.comboxChanged(TagType)
 	})
 	for _, v := range conf.TypeComboxs {
 		typeCombox.Items().Add(v)
+		switch v {
+		case conf.TC_TypeScript:
+			f.tag2pnl[v] = f.tsPanel()
+			break
+		case conf.TC_Golang:
+			f.tag2pnl[v] = f.goPanel()
+			break
+		case conf.TC_CSharp:
+			f.tag2pnl[v] = f.cSharpPanel()
+			break
+		}
 	}
 	typeCombox.SetItemIndex(0)
-	f.cfg.TagType = typeCombox.Items().Strings(typeCombox.ItemIndex())
+	f.comboxChanged(typeCombox.Items().Strings(typeCombox.ItemIndex()))
 
-	btnSave := vcl.NewButton(pTop)
-	btnSave.SetParent(pTop)
+	btnSave := vcl.NewButton(f.pTop)
+	btnSave.SetParent(f.pTop)
 	btnSave.SetCaption("保存")
 	btnSave.SetBounds(510, 90, 80, 25)
 	btnSave.SetOnClick(func(sender vcl.IObject) {
@@ -143,13 +178,8 @@ func (f *TCfgForm) create() {
 			vcl.ShowMessage("导出路径不能为空")
 			return
 		}
-		var err error
-		var data []byte
-		switch f.cfg.TagType {
-		case conf.TC_TypeScript:
-			data, err = json.Marshal(f.ts)
-			break
-		}
+		pnlCfg := f.tag2pnl[f.cfg.TagType]
+		data, err := json.Marshal(pnlCfg.Cfg)
 		if err != nil {
 			vcl.ShowMessage("解析Json错误")
 			return
@@ -162,112 +192,21 @@ func (f *TCfgForm) create() {
 		MainForm.SetFocus()
 	})
 
-	f.pContext = vcl.NewPanel(f)
-	f.pContext.SetParent(f)
-	f.pContext.SetParentBackground(false)
-	f.pContext.SetColor(colors.ClWhite)
-	f.pContext.SetAlign(types.AlClient)
-
 }
 
-func (f *TCfgForm) tsPanel() {
-	f.ts = &conf.TsCfg{
-		Ns:          "proto",
-		CreateJson:  true,
-		UseModule:   true,
-		OutJsonPath: "",
-		FileName:    "DymPbCode.ts",
-		JsonName:    "DymPbCfg.json",
+func (f *TCfgForm) comboxChanged(TagType string) {
+	if f.cfg.TagType == TagType {
+		return
 	}
-	p := vcl.NewFrame(f.pContext)
-	p.SetParent(f.pContext)
-	p.SetAlign(types.AlClient)
-
-	lb := vcl.NewLabel(p)
-	lb.SetParent(p)
-	lb.SetCaption("命名空间:")
-	lb.SetTop(15)
-	lb.SetLeft(10)
-
-	edit := vcl.NewEdit(p)
-	edit.SetParent(p)
-	edit.SetBounds(100, 10, 200, 50)
-	edit.SetText(f.ts.Ns)
-	edit.SetOnChange(func(sender vcl.IObject) {
-		f.ts.Ns = edit.Text()
-	})
-
-	lb = vcl.NewLabel(p)
-	lb.SetParent(p)
-	lb.SetCaption("导出文件名:")
-	lb.SetTop(45)
-	lb.SetLeft(10)
-
-	fileEdit := vcl.NewEdit(p)
-	fileEdit.SetParent(p)
-	fileEdit.SetBounds(100, 40, 200, 50)
-	fileEdit.SetText(f.ts.FileName)
-	fileEdit.SetOnChange(func(sender vcl.IObject) {
-		f.ts.FileName = fileEdit.Text()
-	})
-
-	lb = vcl.NewLabel(p)
-	lb.SetParent(p)
-	lb.SetCaption("导出Json名:")
-	lb.SetTop(75)
-	lb.SetLeft(10)
-
-	jsonNameEdit := vcl.NewEdit(p)
-	jsonNameEdit.SetParent(p)
-	jsonNameEdit.SetBounds(100, 70, 200, 50)
-	jsonNameEdit.SetText(f.ts.JsonName)
-	jsonNameEdit.SetOnChange(func(sender vcl.IObject) {
-		f.ts.JsonName = jsonNameEdit.Text()
-	})
-
-	lb = vcl.NewLabel(p)
-	lb.SetParent(p)
-	lb.SetCaption("导出Json目录：")
-	lb.SetTop(105)
-	lb.SetLeft(10)
-
-	jsonEdit := vcl.NewEdit(p)
-	jsonEdit.SetEnabled(false)
-	jsonEdit.SetParent(p)
-	jsonEdit.SetBounds(100, 100, 400, 50)
-
-	btnJson := vcl.NewButton(p)
-	btnJson.SetParent(p)
-	btnJson.SetCaption("···")
-	btnJson.SetBounds(510, 100, 80, 25)
-	btnJson.SetOnClick(func(sender vcl.IObject) {
-		sdd := vcl.NewSelectDirectoryDialog(nil)
-		if sdd.Execute() {
-			path := filepath.ToSlash(sdd.FileName())
-			jsonEdit.SetText(path)
-			f.ts.OutJsonPath = path
-		}
-	})
-
-	cb1 := vcl.NewCheckBox(p)
-	cb1.SetParent(p)
-	cb1.SetCaption("是否生成Json配置")
-	cb1.SetTop(135)
-	cb1.SetLeft(10)
-	cb1.SetChecked(f.ts.CreateJson)
-	cb1.SetOnChange(func(sender vcl.IObject) {
-		f.ts.CreateJson = cb1.Checked()
-	})
-
-	cb2 := vcl.NewCheckBox(p)
-	cb2.SetParent(p)
-	cb2.SetCaption("是否增加export关键字")
-	cb2.SetTop(155)
-	cb2.SetLeft(10)
-	cb2.SetChecked(f.ts.UseModule)
-	cb2.SetOnChange(func(sender vcl.IObject) {
-		f.ts.UseModule = cb2.Checked()
-	})
+	if f.cfg.TagType != "" {
+		pnlCfg := f.tag2pnl[f.cfg.TagType]
+		// pnlCfg.Pnl.SetVisible(false)
+		pnlCfg.Pnl.SetParent(nil)
+	}
+	f.cfg.TagType = TagType
+	pnlCfg := f.tag2pnl[TagType]
+	// pnlCfg.Pnl.SetVisible(true)
+	pnlCfg.Pnl.SetParent(f.pContext)
 }
 
 //StringToHash 字符串转为32位整形哈希

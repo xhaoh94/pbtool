@@ -21,5 +21,5 @@ func runApp() {
 	vcl.Application.CreateForm(&forms.MainForm)
 	vcl.Application.CreateForm(&forms.CfgForm)
 	vcl.Application.Run()
-
+	// vcl.RunApp(&forms.MainForm, &forms.CfgForm)
 }

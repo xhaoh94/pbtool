@@ -8,11 +8,13 @@ import (
 
 var (
 	conf        *ConfStruct
-	TypeComboxs []string = []string{TC_TypeScript}
+	TypeComboxs []string = []string{TC_TypeScript, TC_Golang, TC_CSharp}
 )
 
 const (
 	TC_TypeScript string = "TypeScript"
+	TC_Golang     string = "Golang"
+	TC_CSharp     string = "CSharp"
 )
 
 type (
@@ -37,6 +39,17 @@ type (
 		OutJsonPath string
 		FileName    string
 		JsonName    string
+	}
+	GoCfg struct {
+		CreateCmd      bool
+		Ns             string
+		FileName       string
+		ProtoGenGoPath string
+	}
+	CSharpCfg struct {
+		CreateCmd bool
+		Ns        string
+		FileName  string
 	}
 )
 
