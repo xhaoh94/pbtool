@@ -6,6 +6,7 @@ import (
 
 	_ "github.com/ying32/govcl/pkgs/winappres"
 	"github.com/ying32/govcl/vcl"
+	_ "github.com/ying32/liblclbinres"
 )
 
 func main() {
