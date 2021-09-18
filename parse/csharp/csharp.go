@@ -44,7 +44,7 @@ func Parse(cfg *conf.OutCfg) bool {
 	goCfg := &conf.GoCfg{}
 	err := json.Unmarshal([]byte(cfg.Context), goCfg)
 	if err != nil {
-		vcl.ShowMessage("goParse 解析Json报错")
+		vcl.ShowMessage("csharpParse 解析Json报错")
 		return false
 	}
 
@@ -55,10 +55,9 @@ func Parse(cfg *conf.OutCfg) bool {
 	str += "--csharp_out=" + cfg.OutPath + " "
 	for _, v := range files {
 		exe := str + v
-		d, b := common.RunExe(exe)
+		b := common.RunExe(exe, "start")
 		if !b {
-			log.Println("goParse 解析协议出错：" + str)
-			log.Println(d)
+			log.Println("csharpParse 解析协议出错：" + str)
 		}
 	}
 

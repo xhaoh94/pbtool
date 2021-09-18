@@ -1,11 +1,9 @@
-package golang
+package pbjs
 
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
 	"pbtool/common"
 	"pbtool/conf"
 	"regexp"
@@ -41,44 +39,34 @@ func Parse(cfg *conf.OutCfg) bool {
 		vcl.ShowMessage("protoc路径为空")
 		return false
 	}
-	goCfg := &conf.GoCfg{}
-	err := json.Unmarshal([]byte(cfg.Context), goCfg)
+	pbjsCfg := &conf.PbJsCfg{}
+	err := json.Unmarshal([]byte(cfg.Context), pbjsCfg)
 	if err != nil {
-		vcl.ShowMessage("goParse 解析Json报错")
-		return false
-	}
-
-	protoGenGoPath := goCfg.ProtoGenGoPath
-	if protoGenGoPath == "" {
-		vcl.ShowMessage("protoc-gen-go路径为空")
+		vcl.ShowMessage("pbjsParse 解析Json报错")
 		return false
 	}
 
 	files := make([]string, 0)
 	common.Files(cfg.InPath, &files)
 
-	str := protocPath + " --plugin=protoc-gen-go=" + protoGenGoPath + " "
-	str += "--proto_path=" + cfg.InPath + " "
-	str += "--go_out=plugins=grpc:" + cfg.OutPath + " "
-	for _, v := range files {
-		exe := str + v
-		// str += "--go_out=" + cfg.OutPath + " " + v
-		b := common.RunExe(exe, "start")
-		if !b {
-			log.Println("goParse 解析协议出错：" + str)
-		}
+	str := fmt.Sprintf(`pbjs -t %s -w %s`, pbjsCfg.Target, pbjsCfg.Wrap)
+	str += " -o " + cfg.OutPath + "/" + pbjsCfg.FileName
+	if pbjsCfg.UseEs6 {
+		str += " --es6"
 	}
-
-	if goCfg.CreateCmd {
-		out := make([]string, 0)
-		common.FilePathContent(cfg.InPath, &out)
-		for _, v := range out {
-			b := parseMessage(v)
+	str += " " + cfg.InPath + "/**.proto"
+	b := common.RunExe(str, "call")
+	if !b {
+		log.Println("pbjsParse 解析协议出错：" + str)
+	} else {
+		if pbjsCfg.CreateDts {
+			kz := strings.Split(pbjsCfg.FileName, ".")[0]
+			str = `pbts -o ` + cfg.OutPath + "/" + kz + ".d.ts " + cfg.OutPath + "/" + pbjsCfg.FileName
+			b := common.RunExe(str, "call")
 			if !b {
-				return false
+				log.Println("pbjsParse 生成d.ts出错：" + str)
 			}
 		}
-		write(cfg.OutPath, goCfg.Ns, goCfg.FileName)
 	}
 	return true
 }
@@ -152,32 +140,4 @@ func parseMessage(str string) bool {
 		Messages = append(Messages, s)
 	}
 	return true
-}
-
-func write(OutPath string, NameSpace string, FileName string) {
-	_, err := os.Stat(OutPath)
-	if err != nil {
-		os.Mkdir(OutPath, 0777)
-	}
-
-	strCs := "\n\nconst (\n"
-	strSc := "\n\nconst (\n"
-	for _, v := range Messages {
-		if v.Cs > 0 {
-			strCs += "\t" + v.Title + " uint32 = " + strconv.Itoa(int(v.Cs)) + "\n"
-		}
-		if v.Sc > 0 {
-			strSc += "\t" + v.Title + " uint32 = " + strconv.Itoa(int(v.Sc)) + "\n"
-		}
-	}
-	strCs += ")"
-	strSc += ")"
-	str := common.Title + "package " + NameSpace + strCs + strSc
-	var d = []byte(str)
-	err = ioutil.WriteFile(OutPath+"/"+FileName, d, 0666)
-	if err != nil {
-		fmt.Println("write golang fail")
-	} else {
-		fmt.Println("write golang success")
-	}
 }

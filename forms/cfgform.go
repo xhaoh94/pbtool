@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"pbtool/conf"
 
-	"github.com/google/uuid"
 	"github.com/ying32/govcl/vcl"
 	"github.com/ying32/govcl/vcl/types"
 	"github.com/ying32/govcl/vcl/types/colors"
@@ -31,7 +30,8 @@ var (
 
 func (f *TCfgForm) Init() {
 	f.cfg = new(conf.OutCfg)
-	f.cfg.ID = StringToHash(uuid.New().String())
+	l := len(conf.GetCfgs())
+	f.cfg.ID = l + 1
 	f.tag2pnl = make(map[string]*PnlCfg)
 	f.create()
 }
@@ -46,10 +46,12 @@ func (f *TCfgForm) OnFormCreate(sender vcl.IObject) {
 }
 func (f *TCfgForm) create() {
 	if f.pContext != nil {
+		f.pContext.SetParent(nil)
 		f.pContext.Free()
 		f.pContext = nil
 	}
 	if f.pTop != nil {
+		f.pTop.SetParent(nil)
 		f.pTop.Free()
 		f.pTop = nil
 	}
@@ -155,6 +157,9 @@ func (f *TCfgForm) create() {
 			break
 		case conf.TC_CSharp:
 			f.tag2pnl[v] = f.cSharpPanel()
+			break
+		case conf.TC_Protobufjs:
+			f.tag2pnl[v] = f.pbjsPanel()
 			break
 		}
 	}

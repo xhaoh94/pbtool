@@ -7,14 +7,31 @@ import (
 )
 
 var (
-	conf        *ConfStruct
-	TypeComboxs []string = []string{TC_TypeScript, TC_Golang, TC_CSharp}
+	conf                *ConfStruct
+	TypeComboxs         []string = []string{TC_TypeScript, TC_Golang, TC_CSharp, TC_Protobufjs}
+	PBJS_Wrap_Comboxs   []string = []string{PBJS_Commonjs, PBJS_Deafult, PBJS_Amd, PBJS_Es6, PBJS_Closure}
+	PBJS_Target_Comboxs []string = []string{PBJS_Staitc_Module, PBJS_Json, PBJS_Json_Module, PBJS_Proto2, PBJS_Proto3, PBJS_Static}
 )
 
 const (
 	TC_TypeScript string = "TypeScript"
 	TC_Golang     string = "Golang"
 	TC_CSharp     string = "CSharp"
+	TC_Protobufjs string = "Protobufjs"
+)
+const (
+	PBJS_Deafult  string = "default"
+	PBJS_Commonjs string = "commonjs"
+	PBJS_Amd      string = "amd"
+	PBJS_Es6      string = "es6"
+	PBJS_Closure  string = "closure"
+
+	PBJS_Json          string = "json"
+	PBJS_Json_Module   string = "json-module"
+	PBJS_Proto2        string = "proto2"
+	PBJS_Proto3        string = "proto3"
+	PBJS_Static        string = "static"
+	PBJS_Staitc_Module string = "static-module"
 )
 
 type (
@@ -50,6 +67,13 @@ type (
 		CreateCmd bool
 		Ns        string
 		FileName  string
+	}
+	PbJsCfg struct {
+		FileName  string
+		CreateDts bool
+		Target    string
+		Wrap      string
+		UseEs6    bool
 	}
 )
 

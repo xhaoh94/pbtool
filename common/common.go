@@ -55,11 +55,11 @@ func Files(path string, out *[]string) {
 	}
 }
 
-func RunExe(exeAdress string) (string, bool) {
-	cmd := exec.Command("cmd.exe", "/c", "start "+exeAdress)
-	d, err := cmd.CombinedOutput()
+func RunExe(exeAdress string, m string) bool {
+	cmd := exec.Command("cmd.exe", "/c", m+" "+exeAdress)
+	err := cmd.Run()
 	if err != nil {
-		return string(d), false
+		return false
 	}
-	return string(d), true
+	return true
 }

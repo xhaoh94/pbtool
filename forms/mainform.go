@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"pbtool/conf"
 	"pbtool/parse"
+	"sort"
 
 	"github.com/ying32/govcl/vcl"
 	"github.com/ying32/govcl/vcl/types"
@@ -149,7 +150,13 @@ func (f *TMainForm) updPage() {
 			}
 		}
 	}
-	for _, v := range cfgs {
+	var keys []int
+	for k := range cfgs {
+		keys = append(keys, cfgs[k].ID)
+	}
+	sort.Ints(keys)
+	for _, k := range keys {
+		v := cfgs[k]
 		tab := id2tab[v.ID]
 		if tab == nil {
 			tab = vcl.NewTabSheet(f.pageCol)
@@ -167,6 +174,9 @@ func (f *TMainForm) updPage() {
 			break
 		case conf.TC_CSharp:
 			f.cSharpPanel(tab)
+			break
+		case conf.TC_Protobufjs:
+			f.pbjsPanel(tab)
 			break
 		}
 	}
